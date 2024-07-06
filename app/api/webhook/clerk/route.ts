@@ -5,7 +5,7 @@ import { createUser, deleteUser, updateUser } from "@/lib/actions/user.actions";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
-  // You can find this in the Clerk Dashboard -> Webhooks -> choose the endpoint
+  // You can find this in the Clerk Dashboard -> Webhooks -> choose the webhook
   const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
 
   if (!WEBHOOK_SECRET) {
@@ -50,60 +50,83 @@ export async function POST(req: Request) {
     });
   }
 
-  // Do something with the payload
-  // For this guide, you simply log the payload to the console
+  // Get the ID and type
   const { id } = evt.data;
   const eventType = evt.type;
-  console.log(`Webhook with and ID of ${id} and type of ${eventType}`);
-  console.log("Webhook body:", body);
 
   if (eventType === "user.created") {
-    const { id, email_addresses, image_url, first_name, last_name, username } =
-      evt.data;
+    try {
+      const {
+        id,
+        email_addresses,
+        image_url,
+        first_name,
+        last_name,
+        username,
+      } = evt.data;
 
-    const user = {
-      clerkId: id,
-      email: email_addresses[0].email_address,
-      firstName: first_name!,
-      lastName: last_name!,
-      photo: image_url,
-      username: username!,
-    };
+      const user = {
+        clerkId: id,
+        email: email_addresses[0].email_address,
+        username: username!,
+        firstName: first_name!,
+        lastName: last_name!,
+        photo: image_url,
+      };
 
-    const newUser = await createUser(user);
+      const newUser = await createUser(user);
 
-    if (newUser) {
-      await clerkClient.users.updateUserMetadata(id, {
-        publicMetadata: {
-          userId: newUser._id,
-        },
-      });
+      if (newUser) {
+        await clerkClient.users.updateUserMetadata(id, {
+          publicMetadata: {
+            userId: newUser._id,
+          },
+        });
+      }
+      return NextResponse.json({ message: "OK", user: newUser });
+    } catch (error) {
+      return NextResponse.json(
+        { error: "Internal Server Error" },
+        { status: 500 }
+      );
     }
-
-    return NextResponse.json({ message: "OK", user: newUser });
   }
 
   if (eventType === "user.updated") {
-    const { id, image_url, first_name, last_name, username } = evt.data;
+    try {
+      const { id, image_url, first_name, last_name, username } = evt.data;
 
-    const user = {
-      firstName: first_name!,
-      lastName: last_name!,
-      username: username!,
-      photo: image_url,
-    };
+      const user = {
+        firstName: first_name!,
+        lastName: last_name!,
+        username: username!,
+        photo: image_url,
+      };
 
-    const updatedUser = await updateUser(id, user);
+      const updatedUser = await updateUser(id, user);
 
-    return NextResponse.json({ message: "OK", user: updatedUser });
+      return NextResponse.json({ message: "OK", user: updatedUser });
+    } catch (error) {
+      return NextResponse.json(
+        { error: "Internal Server Error" },
+        { status: 500 }
+      );
+    }
   }
 
   if (eventType === "user.deleted") {
-    const { id } = evt.data;
+    try {
+      const { id } = evt.data;
 
-    const deletedUser = await deleteUser(id!);
+      const deletedUser = await deleteUser(id!);
 
-    return NextResponse.json({ message: "OK", user: deletedUser });
+      return NextResponse.json({ message: "OK", user: deletedUser });
+    } catch (error) {
+      return NextResponse.json(
+        { error: "Internal Server Error" },
+        { status: 500 }
+      );
+    }
   }
 
   return new Response("", { status: 200 });
