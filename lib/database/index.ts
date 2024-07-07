@@ -1,8 +1,13 @@
-import mongoose from "mongoose";
+import mongoose, { Mongoose } from "mongoose";
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
-let cached = (global as any).mongoose || { conn: null, promise: null };
+interface connObj {
+  conn: Mongoose | null;
+  promise: Promise<Mongoose> | null;
+}
+
+let cached: connObj = (global as any).mongoose || { conn: null, promise: null };
 
 export const connectToDatabase = async () => {
   if (cached.conn) {
@@ -12,7 +17,7 @@ export const connectToDatabase = async () => {
   if (!MONGODB_URI) throw new Error("Mongodb URI is missing!");
 
   cached.promise =
-    cached.promse ||
+    cached.promise ||
     mongoose.connect(MONGODB_URI, {
       dbName: "eventigo",
       bufferCommands: false,
