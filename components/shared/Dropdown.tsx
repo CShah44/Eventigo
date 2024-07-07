@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Select,
   SelectContent,
@@ -18,8 +20,12 @@ import {
 } from "@/components/ui/alert-dialog";
 
 import { ICategory } from "@/lib/database/models/category.model";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Input } from "../ui/input";
+import {
+  createCategory,
+  getAllCategories,
+} from "@/lib/actions/category.action";
 
 type DropdownProps = {
   value?: string;
@@ -27,11 +33,27 @@ type DropdownProps = {
 };
 
 const Dropdown = ({ value, onChangeHandler }: DropdownProps) => {
-  const [categories, setCategories] = useState<ICategory[]>([]);
+  const [categoriesList, setcategoriesList] = useState<ICategory[]>([]);
 
   const [newCategory, setNewCategory] = useState<string>("");
 
-  const handleAddCategory = () => {};
+  const handleAddCategory = () => {
+    createCategory({
+      categoryName: newCategory.trim(),
+    }).then((category) => {
+      setcategoriesList([...categoriesList, category]);
+    });
+  };
+
+  useEffect(() => {
+    const getCategories = async () => {
+      const categoryList = await getAllCategories();
+
+      categoryList && setcategoriesList(categoryList as ICategory[]);
+    };
+
+    getCategories();
+  }, []);
 
   return (
     <Select onValueChange={onChangeHandler} defaultValue={value}>
@@ -39,11 +61,11 @@ const Dropdown = ({ value, onChangeHandler }: DropdownProps) => {
         <SelectValue placeholder="Category" />
       </SelectTrigger>
       <SelectContent>
-        {categories.length > 0 &&
-          categories.map((category) => (
+        {categoriesList.length > 0 &&
+          categoriesList.map((category) => (
             <SelectItem
               className="p-regular-14 select-item"
-              key={category.id}
+              key={category._id}
               value={category._id}
             >
               {category.name}
